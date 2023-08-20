@@ -3,5 +3,5 @@
 #include "Log.h"
 
 void android_main(android_app* pApplication) {
-    DroidBlaster(pApplication).run();
+    DroidBlaster::DroidBlaster(pApplication).run();
 }

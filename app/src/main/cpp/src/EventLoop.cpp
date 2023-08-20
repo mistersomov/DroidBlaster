@@ -1,113 +1,119 @@
 #include "EventLoop.h"
 #include "Log.h"
 
-EventLoop::EventLoop(android_app *pApplication, ActivityHandler &activityHandler)
-        : _application(pApplication), _activityHandler(activityHandler), _enabled(false), _quit(false) {
-    _application->userData = this;
-    _application->onAppCmd = callback_appEvent;
-}
+namespace DroidBlaster {
+    EventLoop::EventLoop(android_app *pApplication, ActivityHandler &pActivityHandler)
+            : m_application(pApplication), m_activityHandler(pActivityHandler), m_enabled(false), m_quit(false) {
+        m_application->userData = this;
+        m_application->onAppCmd = callback_appEvent;
+    }
 
-void EventLoop::run() {
-    int32_t result, events;
-    android_poll_source *source;
+    void EventLoop::run() {
+        int32_t result;
+        int32_t events;
+        android_poll_source *source;
 
-    Log::info("Starting event loop");
-    while (true) {
-        result = ALooper_pollAll(_enabled ? 0 : -1, nullptr, &events, (void **) &source) >= 0;
-        // Цикл обработки событий.
-        while (result) {
-            // Событие для обработки.
-            if (source != nullptr) {
-                source->process(_application, source);
+        Log::info("Starting event loop");
+        while (true) {
+            // Цикл обработки событий.
+            while ((result = ALooper_pollAll(m_enabled ? 0 : -1, nullptr, &events, (void **) &source)) >= 0) {
+                // Событие для обработки.
+                  if (source != nullptr) {
+                    Log::info("Processing an event");
+                    source->process(m_application, source);
+                }
+                // Завершение приложения.
+                if (m_application->destroyRequested) {
+                    Log::info("Exiting event loop");
+                    return;
+                }
             }
-            // Завершение приложения.
-            if (_application->destroyRequested) {
-                Log::info("Exiting event loop");
-                return;
+            // Выполнить шаг вычислений в приложении.
+            if (m_enabled && not m_quit) {
+                if (m_activityHandler.onStep() != STATUS_OK) {
+                    m_quit = true;
+                    ANativeActivity_finish(m_application->activity);
+                }
             }
         }
-        // Выполнить шаг вычислений в приложении.
-        if (_enabled && not _quit) {
-            if (_activityHandler.onStep() != STATUS_OK) {
-                _quit = true;
-                ANativeActivity_finish(_application->activity);
+    }
+
+    void EventLoop::activate() {
+        // Активировать визуальный компонент, если окно доступно.
+        if (not m_enabled && m_application->window != nullptr) {
+            m_enabled = true;
+            m_quit = false;
+            if (m_activityHandler.onActivate() != STATUS_OK) {
+                goto ERROR;
             }
         }
-    }
-}
+        return;
 
-void EventLoop::activate() {
-    // Активировать визуальный компонент, если окно доступно.
-    if (not _enabled && _application->window != nullptr) {
-        _enabled = true;
-        _quit = false;
-        if (_activityHandler.onActivate() != STATUS_OK) {
-            goto ERROR;
+        ERROR :
+        m_quit = true;
+        deactivate();
+        ANativeActivity_finish(m_application->activity);
+    }
+
+    void EventLoop::deactivate() {
+        if (m_enabled) {
+            m_activityHandler.onDeactivate();
+            m_enabled = false;
         }
     }
-    return;
 
-    ERROR :
-    _quit = true;
-    deactivate();
-    ANativeActivity_finish(_application->activity);
-}
-
-void EventLoop::deactivate() {
-    if (_enabled) {
-        _activityHandler.onDeactivate();
-        _enabled = false;
+    void EventLoop::callback_appEvent(android_app *pApplication, int32_t pCommand) {
+        EventLoop& eventLoop = *(EventLoop*) pApplication->userData;
+        eventLoop.processAppEvent(pCommand);
     }
-}
 
-void EventLoop::callback_appEvent(android_app *pApplication, int32_t pCommand) {
-    EventLoop& eventLoop = *(EventLoop*) pApplication->userData;
-    eventLoop.processAppEvent(pCommand);
-}
-
-void EventLoop::processAppEvent(int32_t pCommand) {
-    switch (pCommand) {
-        case APP_CMD_CONFIG_CHANGED:
-            _activityHandler.onConfigurationChanged();
-            break;
-        case APP_CMD_INIT_WINDOW:
-            _activityHandler.onCreateWindow();
-            break;
-        case APP_CMD_DESTROY:
-            _activityHandler.onDestroy();
-            break;
-        case APP_CMD_GAINED_FOCUS:
-            _activityHandler.onGainFocus();
-            break;
-        case APP_CMD_LOST_FOCUS:
-            _activityHandler.onLostFocus();
-            break;
-        case APP_CMD_LOW_MEMORY:
-            _activityHandler.onLowMemory();
-            break;
-        case APP_CMD_PAUSE:
-            _activityHandler.onPause();
-            break;
-        case APP_CMD_RESUME:
-            _activityHandler.onResume();
-            break;
-        case APP_CMD_SAVE_STATE:
-            _activityHandler.onSaveInstanceState(
-                    &_application->savedState,
-                    &_application->savedStateSize
-            );
-            break;
-        case APP_CMD_START:
-            _activityHandler.onStart();
-            break;
-        case APP_CMD_STOP:
-            _activityHandler.onStop();
-            break;
-        case APP_CMD_TERM_WINDOW:
-            _activityHandler.onDestroyWindow();
-            deactivate();
-            break;
-        default:
-            break;
+    void EventLoop::processAppEvent(int32_t pCommand) {
+        switch (pCommand) {
+            case APP_CMD_CONFIG_CHANGED:
+                m_activityHandler.onConfigurationChanged();
+                break;
+            case APP_CMD_INIT_WINDOW:
+                m_activityHandler.onCreateWindow();
+                break;
+            case APP_CMD_DESTROY:
+                m_activityHandler.onDestroy();
+                break;
+            case APP_CMD_GAINED_FOCUS:
+                activate();
+                m_activityHandler.onGainFocus();
+                break;
+            case APP_CMD_LOST_FOCUS:
+                m_activityHandler.onLostFocus();
+                deactivate();
+                break;
+            case APP_CMD_LOW_MEMORY:
+                m_activityHandler.onLowMemory();
+                break;
+            case APP_CMD_PAUSE:
+                m_activityHandler.onPause();
+                deactivate();
+                break;
+            case APP_CMD_RESUME:
+                m_activityHandler.onResume();
+                break;
+            case APP_CMD_SAVE_STATE:
+                m_activityHandler.onSaveInstanceState(
+                        &m_application->savedState,
+                        &m_application->savedStateSize
+                );
+                break;
+            case APP_CMD_START:
+                m_activityHandler.onStart();
+                break;
+            case APP_CMD_STOP:
+                m_activityHandler.onStop();
+                break;
+            case APP_CMD_TERM_WINDOW:
+                m_activityHandler.onDestroyWindow();
+                deactivate();
+                break;
+            default:
+                break;
+        }
     }
 }
