@@ -48,7 +48,7 @@ android {
 }
 
 dependencies {
-
+    implementation("com.google.gms:google-services:4.3.15")
     implementation("androidx.core:core-ktx:1.9.0")
     implementation("androidx.appcompat:appcompat:1.6.1")
     implementation("com.google.android.material:material:1.9.0")

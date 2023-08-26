@@ -8,6 +8,8 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++11 -fvisibility=hidden")
 add_library(native_app_glue STATIC
         ${ANDROID_NDK}/sources/android/native_app_glue/android_native_app_glue.c)
 add_library(${CMAKE_PROJECT_NAME} SHARED
+        src/Ship.cpp
+        src/GraphicsManager.cpp
         src/DroidBlaster.cpp
         src/EventLoop.cpp
         src/Log.cpp
