@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <random>
 
 namespace DroidBlaster {
     typedef int32_t status;
@@ -15,6 +16,5 @@ namespace DroidBlaster {
         float x, y;
     };
 
-#define RAND(pMax) float(pMax) * float(rand()) / float(RAND_MAX)
-
+#define RAND(pMax) (float(pMax) * float(rand()) / float(RAND_MAX))
 }

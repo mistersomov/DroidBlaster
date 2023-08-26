@@ -1,7 +1,9 @@
-#pragma
+#pragma once
 
 #include "Types.h"
 #include <android_native_app_glue.h>
+#include <GLES2/gl2.h>
+#include <EGL/egl.h>
 
 namespace DroidBlaster {
     namespace Graphics {
@@ -21,14 +23,19 @@ namespace DroidBlaster {
             int32_t getRenderHeight() { return m_renderHeight; }
             Element* registerElement(int32_t pHeight, int32_t pWidth);
             status start();
+            void stop();
             status update();
 
         private:
             android_app* m_application;
             int32_t m_renderWidth;
             int32_t m_renderHeight;
-            int32_t m_elementCount;
+            EGLDisplay m_display;
+            EGLSurface m_surface;
+            EGLContext m_context;
+
             Element* m_elements[1024];
+            int32_t m_elementCount;
         };
     }
 }
