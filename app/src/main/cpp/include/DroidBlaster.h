@@ -4,6 +4,10 @@
 #include "EventLoop.h"
 #include "Types.h"
 #include "Ship.h"
+#include "TimeManager.h"
+#include "PhysicsManager.h"
+#include "GraphicsManager.h"
+#include "Asteroid.h"
 
 namespace DroidBlaster {
     class DroidBlaster : public ActivityHandler {
@@ -32,6 +36,10 @@ namespace DroidBlaster {
     private:
         EventLoop m_eventLoop;
         Graphics::Manager m_graphicsManager;
+        TimeManager m_timeManager;
+        PhysicsManager m_physicsManager;
+
+        Asteroid m_asteroids;
         Ship m_ship;
     };
 }

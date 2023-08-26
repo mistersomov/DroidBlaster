@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Types.h"
-#include <ctime>
+#include <time.h>
 
 namespace DroidBlaster {
     class TimeManager {
@@ -11,8 +11,8 @@ namespace DroidBlaster {
         void reset();
         void update();
         static double now();
-        float elapsed() { return };
-        float elapsedTotal() { return };
+        float elapsed() { return m_elapsed; }
+        float elapsedTotal() { return m_elapsedTotal; }
     private:
         double m_firstTime, m_lastTime;
         float m_elapsed, m_elapsedTotal;
