@@ -2,74 +2,85 @@
 #include "Log.h"
 #include <unistd.h>
 
-DroidBlaster::DroidBlaster(android_app *pApplication) : _eventLoop(pApplication, *this) {
-    Log::info("Creating DroidBlaster");
-}
+static const int32_t SHIP_SIZE = 64;
 
-void DroidBlaster::run() {
-    _eventLoop.run();
-}
+namespace DroidBlaster {
+    DroidBlaster::DroidBlaster(android_app *pApplication) : m_eventLoop(pApplication, *this),
+                                                            m_graphicsManager(pApplication),
+                                                            m_ship(pApplication, m_graphicsManager) {
+        Log::info("Creating DroidBlaster");
 
-status DroidBlaster::onActivate() {
-    Log::info("Activating DroidBlaster");
-    return STATUS_OK;
-}
+        Graphics::Element* shipGraphics = m_graphicsManager.registerElement(SHIP_SIZE, SHIP_SIZE);
+        m_ship.registerShip(shipGraphics);
+    }
 
-void DroidBlaster::onDeactivate() {
-    Log::info("Deactivating DroidBlaster");
-}
+    void DroidBlaster::run() {
+        m_eventLoop.run();
+    }
 
-status DroidBlaster::onStep() {
-    Log::info("Starting step");
-    usleep(300000);
-    Log::info("Stepping done");
-    return STATUS_OK;
-}
+    status DroidBlaster::onActivate() {
+        Log::info("Activating DroidBlaster");
 
-void DroidBlaster::onStart() {
-    Log::info("onStart");
-}
+        if (m_graphicsManager.start() != STATUS_OK) {
+            return STATUS_KO;
+        }
+        m_ship.initialize();
+        return STATUS_OK;
+    }
 
-void DroidBlaster::onResume() {
-    Log::info("onResume");
-}
+    void DroidBlaster::onDeactivate() {
+        Log::info("Deactivating DroidBlaster");
+    }
 
-void DroidBlaster::onPause() {
-    Log::info("onPause");
-}
+    status DroidBlaster::onStep() {
+        return m_graphicsManager.update();
+    }
 
-void DroidBlaster::onStop() {
-    Log::info("onStop");
-}
+    void DroidBlaster::onStart() {
+        Log::info("onStart");
+    }
 
-void DroidBlaster::onDestroy() {
-    Log::info("onDestroy");
-}
+    void DroidBlaster::onResume() {
+        Log::info("onResume");
+    }
 
-void DroidBlaster::onSaveInstanceState(void **pData, size_t *pSize) {
-    Log::info("onSaveInstanceState");
-}
+    void DroidBlaster::onPause() {
+        Log::info("onPause");
+    }
 
-void DroidBlaster::onConfigurationChanged() {
-    Log::info("onConfigurationChanged");
-}
+    void DroidBlaster::onStop() {
+        Log::info("onStop");
+    }
 
-void DroidBlaster::onLowMemory() {
-    Log::info("onLowMemory");
-}
+    void DroidBlaster::onDestroy() {
+        Log::info("onDestroy");
+    }
 
-void DroidBlaster::onCreateWindow() {
-    Log::info("onCreateWindow");
-}
+    void DroidBlaster::onSaveInstanceState(void **pData, size_t *pSize) {
+        Log::info("onSaveInstanceState");
+    }
 
-void DroidBlaster::onDestroyWindow() {
-    Log::info("onDestroyWindow");
-}
+    void DroidBlaster::onConfigurationChanged() {
+        Log::info("onConfigurationChanged");
+    }
 
-void DroidBlaster::onGainFocus() {
-    Log::info("onGainFocus");
-}
+    void DroidBlaster::onLowMemory() {
+        Log::info("onLowMemory");
+    }
 
-void DroidBlaster::onLostFocus() {
-    Log::info("onLostFocus");
+    void DroidBlaster::onCreateWindow() {
+        Log::info("onCreateWindow");
+    }
+
+    void DroidBlaster::onDestroyWindow() {
+        Log::info("onDestroyWindow");
+    }
+
+    void DroidBlaster::onGainFocus() {
+        Log::info("onGainFocus");
+    }
+
+    void DroidBlaster::onLostFocus() {
+        Log::info("onLostFocus");
+    }
 }

@@ -8,6 +8,9 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++11 -fvisibility=hidden")
 add_library(native_app_glue STATIC
         ${ANDROID_NDK}/sources/android/native_app_glue/android_native_app_glue.c)
 add_library(${CMAKE_PROJECT_NAME} SHARED
+        src/TimeManager.cpp
+        src/Ship.cpp
+        src/GraphicsManager.cpp
         src/DroidBlaster.cpp
         src/EventLoop.cpp
         src/Log.cpp
@@ -18,7 +21,6 @@ include_directories(include)
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
         ${ANDROID_NDK}/sources/android/native_app_glue)
 target_link_libraries(${CMAKE_PROJECT_NAME}
-        # List libraries link to the target library
         android
         log
         native_app_glue)
