@@ -23,6 +23,8 @@ include_directories(include)
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
         ${ANDROID_NDK}/sources/android/native_app_glue)
 target_link_libraries(${CMAKE_PROJECT_NAME}
+        GLESv2
+        EGL
         android
         log
         native_app_glue)
