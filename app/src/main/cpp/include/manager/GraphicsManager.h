@@ -4,9 +4,17 @@
 #include <android_native_app_glue.h>
 #include <GLES2/gl2.h>
 #include <EGL/egl.h>
+#include "Resource.h"
+#include <png.h>
 
 namespace DroidBlaster {
     namespace Graphics {
+        struct TextureProperties {
+            Resource* textureResource;
+            GLint texture;
+            int32_t width, height;
+        };
+
         struct Element {
             Element(int32_t pWidth, int32_t pHeight) : location(), width(pWidth), height(pHeight) {};
 
@@ -26,16 +34,21 @@ namespace DroidBlaster {
             void stop();
             status update();
 
+            TextureProperties* loadTexture(Resource& pResource);
+
+        private:
+            static void callback_readPng(png_structp pStruct, png_bytep pData, png_size_t pSize);
+
         private:
             android_app* m_application;
-            int32_t m_renderWidth;
-            int32_t m_renderHeight;
+            int32_t m_renderWidth, m_renderHeight;
             EGLDisplay m_display;
             EGLSurface m_surface;
             EGLContext m_context;
 
+            TextureProperties m_textures[32];
             Element* m_elements[1024];
-            int32_t m_elementCount;
+            int32_t m_elementCount, m_textureCount;
         };
     }
 }

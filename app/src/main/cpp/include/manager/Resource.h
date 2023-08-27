@@ -22,7 +22,7 @@ namespace DroidBlaster {
 
     private:
         const char *m_path;
-        AAssetManager* m_assetManager;
-        AAsset* m_asset;
+        AAssetManager *m_assetManager;
+        AAsset *m_asset;
     };
 }
