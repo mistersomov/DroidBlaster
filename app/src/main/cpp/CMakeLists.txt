@@ -9,13 +9,14 @@ add_library(native_app_glue STATIC
         ${ANDROID_NDK}/sources/android/native_app_glue/android_native_app_glue.c)
 add_library(${CMAKE_PROJECT_NAME} SHARED
         src/Asteroid.cpp
-        src/PhysicsManager.cpp
-        src/TimeManager.cpp
         src/Ship.cpp
-        src/GraphicsManager.cpp
         src/DroidBlaster.cpp
         src/EventLoop.cpp
         src/Log.cpp
+        src/manager/Resource.cpp
+        src/manager/PhysicsManager.cpp
+        src/manager/TimeManager.cpp
+        src/manager/GraphicsManager.cpp
         app/droid-blaster.cpp)
 
 include_directories(include)

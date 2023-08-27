@@ -1,6 +1,6 @@
 #pragma once
 
-#include "GraphicsManager.h"
+#include "manager/GraphicsManager.h"
 #include "TimeManager.h"
 #include "Types.h"
 

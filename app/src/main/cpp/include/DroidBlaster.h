@@ -4,9 +4,9 @@
 #include "EventLoop.h"
 #include "Types.h"
 #include "Ship.h"
-#include "TimeManager.h"
-#include "PhysicsManager.h"
-#include "GraphicsManager.h"
+#include "manager/TimeManager.h"
+#include "manager/PhysicsManager.h"
+#include "manager/GraphicsManager.h"
 #include "Asteroid.h"
 
 namespace DroidBlaster {
