@@ -1,7 +1,7 @@
 #pragma once
 
-#include "PhysicsManager.h"
-#include "TimeManager.h"
+#include "manager/PhysicsManager.h"
+#include "manager/TimeManager.h"
 #include "Types.h"
 
 namespace DroidBlaster {

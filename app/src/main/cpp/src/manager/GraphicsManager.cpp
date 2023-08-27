@@ -1,7 +1,6 @@
 #include <cstring>
-#include "GraphicsManager.h"
+#include "manager/GraphicsManager.h"
 #include "Log.h"
-
 
 namespace DroidBlaster {
     using namespace Graphics;
