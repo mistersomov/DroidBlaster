@@ -13,6 +13,7 @@ add_library(${CMAKE_PROJECT_NAME} SHARED
         src/DroidBlaster.cpp
         src/EventLoop.cpp
         src/Log.cpp
+        src/manager/SoundManager.cpp
         src/manager/Resource.cpp
         src/manager/PhysicsManager.cpp
         src/manager/TimeManager.cpp
@@ -24,6 +25,7 @@ include_directories(include)
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
         ${ANDROID_NDK}/sources/android/native_app_glue)
 target_link_libraries(${CMAKE_PROJECT_NAME}
+        OpenSLES
         GLESv2
         EGL
         android

@@ -7,6 +7,7 @@
 #include "manager/TimeManager.h"
 #include "manager/PhysicsManager.h"
 #include "manager/GraphicsManager.h"
+#include "manager/SoundManager.h"
 #include "Asteroid.h"
 
 namespace DroidBlaster {
@@ -38,6 +39,7 @@ namespace DroidBlaster {
         Graphics::Manager m_graphicsManager;
         TimeManager m_timeManager;
         PhysicsManager m_physicsManager;
+        SoundManager m_soundManager;
 
         Asteroid m_asteroids;
         Ship m_ship;
