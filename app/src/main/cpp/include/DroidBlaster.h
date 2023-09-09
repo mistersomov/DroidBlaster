@@ -43,5 +43,7 @@ namespace DroidBlaster {
 
         Asteroid m_asteroids;
         Ship m_ship;
+
+        Resource m_bgm;
     };
 }

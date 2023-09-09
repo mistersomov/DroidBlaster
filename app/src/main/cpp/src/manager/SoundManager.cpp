@@ -1,11 +1,13 @@
 #include "manager/SoundManager.h"
-#include "manager/Resource.h"
 #include "Log.h"
 
 namespace DroidBlaster {
     SoundManager::SoundManager(android_app *pApplication) : m_application(pApplication),
                                                             m_engine(nullptr), m_engineObj(nullptr),
-                                                            m_outputMixObj(nullptr) {
+                                                            m_outputMixObj(nullptr),
+                                                            m_BGMPlayerObj(nullptr),
+                                                            m_BGMPlayer(nullptr),
+                                                            m_BGMPlayerSeek(nullptr) {
         Log::info("Creating SoundManager");
     }
 
@@ -46,6 +48,7 @@ namespace DroidBlaster {
 
     void SoundManager::stop() {
         Log::info("Stopping SoundManager");
+        stopBGM();
 
         if (m_outputMixObj != nullptr) {
             (*m_outputMixObj)->Destroy(m_outputMixObj);
@@ -55,6 +58,82 @@ namespace DroidBlaster {
             (*m_engineObj)->Destroy(m_engineObj);
             m_engineObj = nullptr;
             m_engine = nullptr;
+        }
+    }
+
+    status SoundManager::playBGM(Resource &pResource) {
+        SLresult result;
+        Log::info("Opening BGM %s", pResource.getPath());
+
+        ResourceDescriptor descriptor = pResource.descriptor();
+        if (descriptor.m_descriptor < 0) {
+            Log::info("Couldn't open BGM file");
+            return STATUS_KO;
+        }
+        SLDataLocator_AndroidFD dataLocatorIn;
+        dataLocatorIn.locatorType = SL_DATALOCATOR_ANDROIDFD;
+        dataLocatorIn.fd = descriptor.m_descriptor;
+        dataLocatorIn.offset = descriptor.m_start;
+        dataLocatorIn.length = descriptor.m_length;
+
+        SLDataFormat_MIME dataFormat;
+        dataFormat.formatType = SL_DATAFORMAT_MIME;
+        dataFormat.mimeType = nullptr;
+        dataFormat.containerType = SL_CONTAINERTYPE_UNSPECIFIED;
+
+        SLDataSource dataSource;
+        dataSource.pLocator = &dataLocatorIn;
+        dataSource.pFormat = &dataFormat;
+
+        SLDataLocator_OutputMix dataLocatorOut;
+        dataLocatorOut.locatorType = SL_DATALOCATOR_OUTPUTMIX;
+        dataLocatorOut.outputMix = m_outputMixObj;
+
+        SLDataSink dataSink;
+        dataSink.pLocator = &dataLocatorOut;
+        dataSink.pFormat = nullptr;
+
+        const SLuint32 bgmPlayerIIDCount = 2;
+        const SLInterfaceID bgmPlayerIIDs[] = {SL_IID_PLAY, SL_IID_SEEK};
+        const SLboolean bgmPlayerReqs[] = {SL_BOOLEAN_TRUE, SL_BOOLEAN_TRUE};
+
+        result = (*m_engine)->CreateAudioPlayer(m_engine, &m_BGMPlayerObj, &dataSource, &dataSink, bgmPlayerIIDCount,
+                                                bgmPlayerIIDs, bgmPlayerReqs);
+        if (result != SL_RESULT_SUCCESS) goto ERROR;
+
+        result = (*m_BGMPlayerObj)->Realize(m_BGMPlayerObj, SL_BOOLEAN_FALSE);
+        if (result != SL_RESULT_SUCCESS) goto ERROR;
+
+        result = (*m_BGMPlayerObj)->GetInterface(m_BGMPlayerObj, SL_IID_PLAY, &m_BGMPlayer);
+        if (result != SL_RESULT_SUCCESS) goto ERROR;
+
+        result = (*m_BGMPlayerObj)->GetInterface(m_BGMPlayerObj, SL_IID_SEEK, &m_BGMPlayerSeek);
+        if (result != SL_RESULT_SUCCESS) goto ERROR;
+
+        result = (*m_BGMPlayerSeek)->SetLoop(m_BGMPlayerSeek, SL_BOOLEAN_TRUE, 0, SL_TIME_UNKNOWN);
+        if (result != SL_RESULT_SUCCESS) goto ERROR;
+
+        result = (*m_BGMPlayer)->SetPlayState(m_BGMPlayer, SL_PLAYSTATE_PLAYING);
+        if (result != SL_RESULT_SUCCESS) goto ERROR;
+
+        return STATUS_OK;
+
+        ERROR:
+        Log::error("Error playing BGM");
+        return STATUS_KO;
+    }
+
+    void SoundManager::stopBGM() {
+        if (m_BGMPlayer != nullptr) {
+            SLuint32 bgmPlayerState;
+            (*m_BGMPlayerObj)->GetState(m_BGMPlayerObj, &bgmPlayerState);
+            if (bgmPlayerState == SL_OBJECT_STATE_REALIZED) {
+                (*m_BGMPlayer)->SetPlayState(m_BGMPlayer, SL_PLAYSTATE_PAUSED);
+                (*m_BGMPlayerObj)->Destroy(m_BGMPlayerObj);
+                m_BGMPlayerObj = nullptr;
+                m_BGMPlayer = nullptr;
+                m_BGMPlayerSeek = nullptr;
+            }
         }
     }
 }
