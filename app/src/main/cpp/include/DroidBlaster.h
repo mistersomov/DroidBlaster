@@ -8,6 +8,7 @@
 #include "manager/PhysicsManager.h"
 #include "manager/GraphicsManager.h"
 #include "manager/SoundManager.h"
+#include "manager/Resource.h"
 #include "Asteroid.h"
 
 namespace DroidBlaster {
@@ -44,6 +45,8 @@ namespace DroidBlaster {
         Asteroid m_asteroids;
         Ship m_ship;
 
+        Resource m_asteroidTexture;
+        Resource m_shipTexture;
         Resource m_bgm;
     };
 }
