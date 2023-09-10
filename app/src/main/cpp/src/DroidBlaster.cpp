@@ -15,13 +15,18 @@ namespace DroidBlaster {
                                                                              m_graphicsManager),
                                                             m_asteroids(pApplication, m_timeManager,
                                                                         m_graphicsManager,
-                                                                        m_physicsManager) {
+                                                                        m_physicsManager),
+                                                            m_soundManager(pApplication),
+                                                            m_asteroidTexture(pApplication, "asteroid.png"),
+                                                            m_shipTexture(pApplication, "ship.png"),
+                                                            m_bgm(pApplication, "bgsound.wav") {
         Log::info("Creating DroidBlaster");
 
         Graphics::Element *shipGraphics = m_graphicsManager.registerElement(SHIP_SIZE, SHIP_SIZE);
         m_ship.registerShip(shipGraphics);
         for (int32_t i = 0; i != ASTEROID_COUNT; ++i) {
-            Graphics::Element* asteroidGraphics = m_graphicsManager.registerElement(ASTEROID_SIZE, ASTEROID_SIZE);
+            Graphics::Element *asteroidGraphics = m_graphicsManager.registerElement(ASTEROID_SIZE,
+                                                                                    ASTEROID_SIZE);
 
             m_asteroids.registerAsteroid(asteroidGraphics->location, ASTEROID_SIZE, ASTEROID_SIZE);
         }
@@ -37,9 +42,15 @@ namespace DroidBlaster {
         if (m_graphicsManager.start() != STATUS_OK) {
             return STATUS_KO;
         }
-
+        m_graphicsManager.loadTexture(m_asteroidTexture);
+        m_graphicsManager.loadTexture(m_shipTexture);
         m_asteroids.initialize();
         m_ship.initialize();
+
+        if (m_soundManager.start() != STATUS_OK) {
+            return STATUS_KO;
+        }
+        m_soundManager.playBGM(m_bgm);
 
         m_timeManager.reset();
         return STATUS_OK;
@@ -47,6 +58,8 @@ namespace DroidBlaster {
 
     void DroidBlaster::onDeactivate() {
         Log::info("Deactivating DroidBlaster");
+        m_graphicsManager.stop();
+        m_soundManager.stop();
     }
 
     status DroidBlaster::onStep() {
