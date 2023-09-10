@@ -10,7 +10,8 @@ namespace DroidBlaster {
                                                   m_elements(), m_elementCount(0),
                                                   m_display(EGL_NO_DISPLAY),
                                                   m_surface(EGL_NO_SURFACE),
-                                                  m_context(EGL_NO_CONTEXT) {
+                                                  m_context(EGL_NO_CONTEXT),
+                                                  m_textures(), m_textureCount(0) {
         Log::info("Creating GraphicsManager");
     }
 
@@ -159,6 +160,11 @@ namespace DroidBlaster {
     void Manager::stop() {
         Log::info("Stopping GraphicsManager");
 
+        for (int32_t i = 0; i != m_textureCount; ++i) {
+            glDeleteTextures(1, reinterpret_cast<const GLuint *>(&m_textures[i].texture));
+        }
+        m_textureCount = 0;
+
         // Уничтожить контекст OpenGl
         if (m_display != EGL_NO_DISPLAY) {
             eglMakeCurrent(m_display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
@@ -172,6 +178,144 @@ namespace DroidBlaster {
             }
             eglTerminate(m_display);
             m_display = EGL_NO_DISPLAY;
+        }
+    }
+
+    TextureProperties *Manager::loadTexture(Resource &pResource) {
+        for (int32_t i = 0; i != m_textureCount; ++i) {
+            if (pResource == *m_textures[i].textureResource) {
+                Log::info("Found %s in cache", pResource.getPath());
+                return &m_textures[i];
+            }
+        }
+
+        Log::info("Loading texture %s", pResource.getPath());
+        TextureProperties *textureProperties;
+        GLuint texture;
+        GLint format;
+
+        png_byte header[8];
+        png_structp pngPtr = nullptr;
+        png_infop infoPtr = nullptr;
+        png_byte *image = nullptr;
+        png_bytep *rowPtrs = nullptr;
+        png_int_32 rowSize;
+        bool transparency;
+
+        if (pResource.open() != STATUS_OK) goto ERROR;
+
+        Log::info("Checking signature");
+        if (pResource.read(header, sizeof(header)) != STATUS_OK) goto ERROR;
+        if (png_sig_cmp(header, 0, 0) != 0) goto ERROR;
+
+        Log::info("Creating required structures");
+        pngPtr = png_create_read_struct(PNG_LIBPNG_VER_STRING, nullptr, nullptr, nullptr);
+        if (not pngPtr) goto ERROR;
+
+        infoPtr = png_create_info_struct(pngPtr);
+        if (not infoPtr) goto ERROR;
+
+        // Подготовить операцию чтения, передав функцию обратного вызова
+        png_set_read_fn(pngPtr, &pResource, callback_readPng);
+        // Если во время чтения возникает ошибка, код вернется обратно,
+        // сюда, и выполнит переход к метке ERROR
+        if (setjmp(png_jmpbuf(pngPtr))) goto ERROR;
+
+        // Игнорировать првые 8 байт
+        png_set_sig_bytes(pngPtr, 8);
+
+        // Получить информацию об изображении PNG и обновить структуру PNG
+        png_read_info(pngPtr, infoPtr);
+        png_int_32 depth, colorType;
+        png_uint_32 width, height;
+        png_get_IHDR(pngPtr, infoPtr, &width, &height, &depth, &colorType, nullptr, nullptr,
+                     nullptr);
+
+        // Создать полноценный альфа-канал, если прозрачность кодируется как массив записей палитры
+        // или как единственный цвет прозрачности
+        transparency = false;
+        if (png_get_valid(pngPtr, infoPtr, PNG_INFO_tRNS)) {
+            png_set_tRNS_to_alpha(pngPtr);
+            transparency = true;
+        }
+
+        // Расширить PNG-изображение до 8 бит на канал, если отводится менее 8 бит
+        if (depth < 8) {
+            png_set_packing(pngPtr);
+            // Сжать PNG-изображение с 16 битами на канал до 8 бит
+        } else if (depth == 16) {
+            png_set_strip_16(pngPtr);
+        }
+
+        // Преобразовать изображение в формат RGBA, если необходимо
+        switch (colorType) {
+            case PNG_COLOR_TYPE_PALETTE:
+                png_set_palette_to_rgb(pngPtr);
+                format = transparency ? GL_RGBA : GL_RGB;
+                break;
+            case PNG_COLOR_TYPE_RGB:
+                format = transparency ? GL_RGBA : GL_RGB;
+                break;
+            case PNG_COLOR_TYPE_RGBA:
+                format = GL_RGBA;
+                break;
+            case PNG_COLOR_TYPE_GRAY:
+                png_set_expand_gray_1_2_4_to_8(pngPtr);
+                format = transparency ? GL_LUMINANCE_ALPHA : GL_LUMINANCE;
+                break;
+            case PNG_COLOR_TYPE_GA:
+                png_set_expand_gray_1_2_4_to_8(pngPtr);
+                format = GL_LUMINANCE_ALPHA;
+                break;
+            default:
+                break;
+        }
+
+        // Подтвердить все преобразования
+        png_read_update_info(pngPtr, infoPtr);
+
+        // Получить размер строки в байтах
+        rowSize = static_cast<int32_t >(png_get_rowbytes(pngPtr, infoPtr));
+        if (rowSize <= 0) goto ERROR;
+
+        // Выделить буфер для изображения и последней передачи в OpenGl
+        image = new png_byte[rowSize * height];
+
+        /**
+         * Указатели на строки в буфере с изображением.
+         * Строки располагаются в обратном порядке, потому что
+         * библиотека OpenGL использует иную систему координат (начало находится в левом нижнем углу), отличающуюся
+         * от системы координат PNG (начало - в левом верхнем углу)
+        **/
+        rowPtrs = new png_bytep[height];
+
+        for(int32_t i = 0; i !=height; ++i) {
+            rowPtrs[height - (i + 1)] = image + i *rowSize;
+        }
+
+        // Прочитать изображение
+        png_read_image(pngPtr, rowPtrs);
+
+        // Освободить память и ресурсы
+        pResource.close();
+        png_destroy_read_struct(&pngPtr, &infoPtr, nullptr);
+        delete[] rowPtrs;
+
+        ERROR:
+        Log::error("Error loading texture into OpenGl");
+        pResource.close();
+        delete[] rowPtrs, image;
+        if (pngPtr != nullptr) {
+            png_infop* infoPtrP = infoPtr != nullptr ? &infoPtr : nullptr;
+            png_destroy_read_struct(&pngPtr, infoPtrP, nullptr);
+        }
+        return nullptr;
+    }
+
+    void Manager::callback_readPng(png_structp pStruct, png_bytep pData, png_size_t pSize) {
+        Resource *pResource = ((Resource *) png_get_io_ptr(pStruct));
+        if (pResource->read(pData, pSize) != STATUS_OK) {
+            pResource->close();
         }
     }
 }
