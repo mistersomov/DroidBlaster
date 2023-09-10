@@ -17,6 +17,8 @@ namespace DroidBlaster {
                                                                         m_graphicsManager,
                                                                         m_physicsManager),
                                                             m_soundManager(pApplication),
+                                                            m_asteroidTexture(pApplication, "asteroid.png"),
+                                                            m_shipTexture(pApplication, "ship.png"),
                                                             m_bgm(pApplication, "bgsound.wav") {
         Log::info("Creating DroidBlaster");
 
@@ -40,13 +42,15 @@ namespace DroidBlaster {
         if (m_graphicsManager.start() != STATUS_OK) {
             return STATUS_KO;
         }
+        m_graphicsManager.loadTexture(m_asteroidTexture);
+        m_graphicsManager.loadTexture(m_shipTexture);
+        m_asteroids.initialize();
+        m_ship.initialize();
+
         if (m_soundManager.start() != STATUS_OK) {
             return STATUS_KO;
         }
         m_soundManager.playBGM(m_bgm);
-
-        m_asteroids.initialize();
-        m_ship.initialize();
 
         m_timeManager.reset();
         return STATUS_OK;

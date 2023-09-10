@@ -206,7 +206,7 @@ namespace DroidBlaster {
 
         Log::info("Checking signature");
         if (pResource.read(header, sizeof(header)) != STATUS_OK) goto ERROR;
-        if (png_sig_cmp(header, 0, 0) != 0) goto ERROR;
+        if (png_sig_cmp(header, 0, 8) != 0) goto ERROR;
 
         Log::info("Creating required structures");
         pngPtr = png_create_read_struct(PNG_LIBPNG_VER_STRING, nullptr, nullptr, nullptr);
@@ -289,8 +289,8 @@ namespace DroidBlaster {
         **/
         rowPtrs = new png_bytep[height];
 
-        for(int32_t i = 0; i !=height; ++i) {
-            rowPtrs[height - (i + 1)] = image + i *rowSize;
+        for (int32_t i = 0; i != height; ++i) {
+            rowPtrs[height - (i + 1)] = image + i * rowSize;
         }
 
         // Прочитать изображение
@@ -301,12 +301,40 @@ namespace DroidBlaster {
         png_destroy_read_struct(&pngPtr, &infoPtr, nullptr);
         delete[] rowPtrs;
 
+        GLenum errorResult;
+        glGenTextures(1, &texture);
+        glBindTexture(GL_TEXTURE_2D, texture);
+
+        // Настроить свойства текстуры
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+        // Загрузить изображение в текстуру OpenGL
+        glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, image);
+
+        // Завершить работу с текстурой
+        glBindTexture(GL_TEXTURE_2D, 0);
+        delete[] image;
+        if (glGetError() != GL_NO_ERROR) goto ERROR;
+        Log::info("Texture size: %d x %d", width, height);
+
+        // Кешировать загруженную текстуру
+        textureProperties = &m_textures[m_textureCount++];
+        textureProperties->texture = texture;
+        textureProperties->textureResource = &pResource;
+        textureProperties->width = width;
+        textureProperties->height = height;
+
+        return textureProperties;
+
         ERROR:
         Log::error("Error loading texture into OpenGl");
         pResource.close();
         delete[] rowPtrs, image;
         if (pngPtr != nullptr) {
-            png_infop* infoPtrP = infoPtr != nullptr ? &infoPtr : nullptr;
+            png_infop *infoPtrP = infoPtr != nullptr ? &infoPtr : nullptr;
             png_destroy_read_struct(&pngPtr, infoPtrP, nullptr);
         }
         return nullptr;
