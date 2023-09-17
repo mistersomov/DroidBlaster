@@ -10,6 +10,7 @@
 #include "manager/SoundManager.h"
 #include "manager/Resource.h"
 #include "Asteroid.h"
+#include "SpriteBatch.hpp"
 
 namespace DroidBlaster {
     class DroidBlaster : public ActivityHandler {
@@ -44,6 +45,7 @@ namespace DroidBlaster {
 
         Asteroid m_asteroids;
         Ship m_ship;
+        SpriteBatch m_spriteBatch;
 
         Resource m_asteroidTexture;
         Resource m_shipTexture;
