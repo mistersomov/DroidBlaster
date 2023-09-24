@@ -3,8 +3,16 @@
 #include <unistd.h>
 
 static const int32_t SHIP_SIZE = 64;
+static const int32_t SHIP_FRAME_1 = 0;
+static const int32_t SHIP_FRAME_COUNT = 8;
+static const float SHIP_ANIM_SPEED = 8.0f;
+
 static const int32_t ASTEROID_COUNT = 16;
 static const int32_t ASTEROID_SIZE = 64;
+static const int32_t ASTEROID_FRAME_1 = 0;
+static const int32_t ASTEROID_FRAME_COUNT = 16;
+static const float ASTEROID_MIN_ANIM_SPEED = 8.0f;
+static const float ASTEROID_ANIM_SPEED_RANGE = 16.0f;
 
 namespace DroidBlaster {
     DroidBlaster::DroidBlaster(android_app *pApplication) : m_eventLoop(pApplication, *this),
@@ -17,16 +25,24 @@ namespace DroidBlaster {
                                                                         m_graphicsManager,
                                                                         m_physicsManager),
                                                             m_soundManager(pApplication),
-                                                            m_asteroidTexture(pApplication, "asteroid.png"),
+                                                            m_asteroidTexture(pApplication,
+                                                                              "asteroid.png"),
                                                             m_shipTexture(pApplication, "ship.png"),
-                                                            m_bgm(pApplication, "bgsound.wav") {
+                                                            m_bgm(pApplication, "bgsound.wav"),
+                                                            m_spriteBatch(m_timeManager,
+                                                                          m_graphicsManager) {
         Log::info("Creating DroidBlaster");
 
-        Graphics::Element *shipGraphics = m_graphicsManager.registerElement(SHIP_SIZE, SHIP_SIZE);
+        Sprite *shipGraphics = m_spriteBatch.registerSprite(m_shipTexture, SHIP_SIZE, SHIP_SIZE);
+        shipGraphics->setAnimation(SHIP_FRAME_1, SHIP_FRAME_COUNT, SHIP_ANIM_SPEED, true);
         m_ship.registerShip(shipGraphics);
+
+        // Создать астероиды
         for (int32_t i = 0; i != ASTEROID_COUNT; ++i) {
-            Graphics::Element *asteroidGraphics = m_graphicsManager.registerElement(ASTEROID_SIZE,
-                                                                                    ASTEROID_SIZE);
+            Sprite *asteroidGraphics = m_spriteBatch.registerSprite(m_asteroidTexture,
+                                                                    ASTEROID_SIZE, ASTEROID_SIZE);
+            float animSpeed = ASTEROID_MIN_ANIM_SPEED + RAND(ASTEROID_ANIM_SPEED_RANGE);
+            asteroidGraphics->setAnimation(ASTEROID_FRAME_1, ASTEROID_COUNT, animSpeed, true);
 
             m_asteroids.registerAsteroid(asteroidGraphics->location, ASTEROID_SIZE, ASTEROID_SIZE);
         }
@@ -42,8 +58,7 @@ namespace DroidBlaster {
         if (m_graphicsManager.start() != STATUS_OK) {
             return STATUS_KO;
         }
-        m_graphicsManager.loadTexture(m_asteroidTexture);
-        m_graphicsManager.loadTexture(m_shipTexture);
+        // Инициализировать игровые объекты
         m_asteroids.initialize();
         m_ship.initialize();
 
