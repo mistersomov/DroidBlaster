@@ -19,6 +19,7 @@ add_library(${CMAKE_PROJECT_NAME} SHARED
         src/DroidBlaster.cpp
         src/EventLoop.cpp
         src/Log.cpp
+        src/manager/InputManager.cpp
         src/manager/SoundManager.cpp
         src/manager/Resource.cpp
         src/manager/PhysicsManager.cpp
