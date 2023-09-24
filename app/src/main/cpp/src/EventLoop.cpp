@@ -2,10 +2,14 @@
 #include "Log.h"
 
 namespace DroidBlaster {
-    EventLoop::EventLoop(android_app *pApplication, ActivityHandler &pActivityHandler)
-            : m_application(pApplication), m_activityHandler(pActivityHandler), m_enabled(false), m_quit(false) {
+    EventLoop::EventLoop(android_app *pApplication, ActivityHandler &pActivityHandler,
+                         InputHandler &pInputHandler)
+            : m_application(pApplication), m_activityHandler(pActivityHandler), m_enabled(false),
+              m_quit(false),
+              m_inputHandler(pInputHandler) {
         m_application->userData = this;
         m_application->onAppCmd = callback_appEvent;
+        m_application->onInputEvent = callback_input;
     }
 
     void EventLoop::run() {
@@ -16,9 +20,10 @@ namespace DroidBlaster {
         Log::info("Starting event loop");
         while (true) {
             // Цикл обработки событий.
-            while ((result = ALooper_pollAll(m_enabled ? 0 : -1, nullptr, &events, (void **) &source)) >= 0) {
+            while ((result = ALooper_pollAll(m_enabled ? 0 : -1, nullptr, &events,
+                                             (void **) &source)) >= 0) {
                 // Событие для обработки.
-                  if (source != nullptr) {
+                if (source != nullptr) {
                     Log::info("Processing an event");
                     source->process(m_application, source);
                 }
@@ -63,7 +68,7 @@ namespace DroidBlaster {
     }
 
     void EventLoop::callback_appEvent(android_app *pApplication, int32_t pCommand) {
-        EventLoop& eventLoop = *(EventLoop*) pApplication->userData;
+        EventLoop &eventLoop = *(EventLoop *) pApplication->userData;
         eventLoop.processAppEvent(pCommand);
     }
 
@@ -115,5 +120,23 @@ namespace DroidBlaster {
             default:
                 break;
         }
+    }
+
+    int32_t EventLoop::processInputEvent(AInputEvent *pEvent) {
+        if (!m_enabled) return 0;
+
+        int32_t eventType = AInputEvent_getType(pEvent);
+        if (eventType == AINPUT_EVENT_TYPE_MOTION) {
+            if (AInputEvent_getSource(pEvent) == AINPUT_SOURCE_TOUCHSCREEN) {
+                return m_inputHandler.onTouchEvent(pEvent);
+            }
+        }
+
+        return 0;
+    }
+
+    int32_t EventLoop::callback_input(android_app *pApplication, AInputEvent *pEvent) {
+        EventLoop& eventLoop = *(EventLoop*) pApplication->userData;
+        return eventLoop.processInputEvent(pEvent);
     }
 }
