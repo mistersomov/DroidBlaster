@@ -25,7 +25,6 @@ namespace DroidBlaster {
         int32_t index = spriteCount * 4; // Первая вершина
 
         // Пересчитать содержимое индексного буфера
-        GLushort *indexes = (&m_indexes[0]) + spriteCount * 6;
         m_indexes[m_indexCount++] = index + 0;
         m_indexes[m_indexCount++] = index + 1;
         m_indexes[m_indexCount++] = index + 2;

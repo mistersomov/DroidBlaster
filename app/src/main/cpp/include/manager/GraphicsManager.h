@@ -49,6 +49,7 @@ namespace DroidBlaster {
 
             TextureProperties* loadTexture(Resource& pResource);
             GLuint loadShader(const char *pVertexShader, const char *pFragmentShader);
+            GLuint loadVertexBuffer(const void* pVertexBuffer, int32_t pVertexBufferSize);
 
         private:
             static void callback_readPng(png_structp pStruct, png_bytep pData, png_size_t pSize);
@@ -70,7 +71,10 @@ namespace DroidBlaster {
             TextureProperties m_textures[32];
             //Element* m_elements[1024];
             Component *m_components[32];
-            int32_t m_elementCount, m_textureCount, m_shaderCount, m_componentCount;
+            //int32_t m_elementCount;
+            int32_t m_textureCount, m_shaderCount, m_componentCount;
+            GLuint m_vertexBuffers[32];
+            int32_t m_vertexBufferCount;
         };
     }
 }

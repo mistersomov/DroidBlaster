@@ -12,7 +12,9 @@ static const int32_t ASTEROID_SIZE = 64;
 static const int32_t ASTEROID_FRAME_1 = 0;
 static const int32_t ASTEROID_FRAME_COUNT = 16;
 static const float ASTEROID_MIN_ANIM_SPEED = 8.0f;
-static const float ASTEROID_ANIM_SPEED_RANGE = 16.0f;
+static const float ASTEROID_ANIM_SPEED_RANGE = 8.5f;
+
+static const int32_t STAR_COUNT = 50;
 
 namespace DroidBlaster {
     DroidBlaster::DroidBlaster(android_app *pApplication) : m_inputManager(pApplication,
@@ -32,13 +34,18 @@ namespace DroidBlaster {
                                                             m_asteroidTexture(pApplication,
                                                                               "asteroid.png"),
                                                             m_shipTexture(pApplication, "ship.png"),
+                                                            m_starTexture(pApplication, "star.png"),
                                                             m_bgm(pApplication, "bgsound.wav"),
+                                                            m_starField(pApplication, m_timeManager,
+                                                                        m_graphicsManager,
+                                                                        STAR_COUNT, m_starTexture),
                                                             m_spriteBatch(m_timeManager,
                                                                           m_graphicsManager),
                                                             m_moveableBody(pApplication,
                                                                            m_inputManager,
                                                                            m_physicsManager),
-                                                            m_collisionSound(pApplication, "start.pcm") {
+                                                            m_collisionSound(pApplication,
+                                                                             "start.pcm") {
         Log::info("Creating DroidBlaster");
 
         Sprite *shipGraphics = m_spriteBatch.registerSprite(m_shipTexture, SHIP_SIZE, SHIP_SIZE);

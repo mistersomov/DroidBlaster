@@ -13,6 +13,7 @@
 #include "MoveableBody.hpp"
 #include "Asteroid.h"
 #include "SpriteBatch.hpp"
+#include "StarField.hpp"
 
 namespace DroidBlaster {
     class DroidBlaster : public ActivityHandler {
@@ -49,11 +50,13 @@ namespace DroidBlaster {
         Asteroid m_asteroids;
         Ship m_ship;
         SpriteBatch m_spriteBatch;
+        StarField m_starField;
 
         Resource m_asteroidTexture;
         Resource m_shipTexture;
         Resource m_bgm;
         Resource m_collisionSound;
+        Resource m_starTexture;
 
         MoveableBody m_moveableBody;
     };
