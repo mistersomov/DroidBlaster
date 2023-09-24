@@ -15,7 +15,10 @@ static const float ASTEROID_MIN_ANIM_SPEED = 8.0f;
 static const float ASTEROID_ANIM_SPEED_RANGE = 16.0f;
 
 namespace DroidBlaster {
-    DroidBlaster::DroidBlaster(android_app *pApplication) : m_eventLoop(pApplication, *this),
+    DroidBlaster::DroidBlaster(android_app *pApplication) : m_inputManager(pApplication,
+                                                                           m_graphicsManager),
+                                                            m_eventLoop(pApplication, *this,
+                                                                        m_inputManager),
                                                             m_graphicsManager(pApplication),
                                                             m_ship(pApplication, m_graphicsManager),
                                                             m_timeManager(),
@@ -30,11 +33,15 @@ namespace DroidBlaster {
                                                             m_shipTexture(pApplication, "ship.png"),
                                                             m_bgm(pApplication, "bgsound.wav"),
                                                             m_spriteBatch(m_timeManager,
-                                                                          m_graphicsManager) {
+                                                                          m_graphicsManager),
+                                                            m_moveableBody(pApplication,
+                                                                           m_inputManager,
+                                                                           m_physicsManager) {
         Log::info("Creating DroidBlaster");
 
         Sprite *shipGraphics = m_spriteBatch.registerSprite(m_shipTexture, SHIP_SIZE, SHIP_SIZE);
         shipGraphics->setAnimation(SHIP_FRAME_1, SHIP_FRAME_COUNT, SHIP_ANIM_SPEED, true);
+        m_moveableBody.registerMoveableBody(shipGraphics->location, SHIP_SIZE, SHIP_SIZE);
         m_ship.registerShip(shipGraphics);
 
         // Создать астероиды
@@ -58,14 +65,16 @@ namespace DroidBlaster {
         if (m_graphicsManager.start() != STATUS_OK) {
             return STATUS_KO;
         }
-        // Инициализировать игровые объекты
-        m_asteroids.initialize();
-        m_ship.initialize();
-
         if (m_soundManager.start() != STATUS_OK) {
             return STATUS_KO;
         }
+        m_inputManager.start();
         m_soundManager.playBGM(m_bgm);
+
+        // Инициализировать игровые объекты
+        m_asteroids.initialize();
+        m_ship.initialize();
+        m_moveableBody.initialize();
 
         m_timeManager.reset();
         return STATUS_OK;
@@ -82,6 +91,7 @@ namespace DroidBlaster {
         m_physicsManager.update();
 
         m_asteroids.update();
+        m_moveableBody.update();
 
         return m_graphicsManager.update();
     }
