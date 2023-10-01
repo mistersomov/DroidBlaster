@@ -7,14 +7,15 @@ namespace DroidBlaster {
     Manager::Manager(android_app *pApplication) : m_application(pApplication),
                                                   m_renderWidth(0), m_renderHeight(0),
                                                   //m_elements(),
-                                                  m_elementCount(0),
+                                                  //m_elementCount(0),
                                                   m_display(EGL_NO_DISPLAY),
                                                   m_surface(EGL_NO_SURFACE),
                                                   m_context(EGL_NO_CONTEXT),
                                                   m_textures(), m_textureCount(0),
                                                   m_projectionMatrix(),
                                                   m_shaders(), m_shaderCount(0),
-                                                  m_components(), m_componentCount(0) {
+                                                  m_components(), m_componentCount(0),
+                                                  m_vertexBuffers(), m_vertexBufferCount(0) {
         Log::info("Creating GraphicsManager");
     }
 
@@ -192,6 +193,10 @@ namespace DroidBlaster {
             glDeleteProgram(shader);
         }
         m_shaderCount = 0;
+        for (auto vertex : m_vertexBuffers) {
+            glDeleteBuffers(1, &vertex);
+        }
+        m_vertexBufferCount = 0;
 
         // Уничтожить контекст OpenGl
         if (m_display != EGL_NO_DISPLAY) {
@@ -424,6 +429,27 @@ namespace DroidBlaster {
         Log::error("Error loading shader");
         if (vertexShader > 0) glDeleteShader(vertexShader);
         if (fragmentShader > 0) glDeleteShader(fragmentShader);
+        return 0;
+    }
+
+    GLuint Manager::loadVertexBuffer(const void *pVertexBuffer, int32_t pVertexBufferSize) {
+        GLuint vertexBuffer;
+
+        // выгрузить указанный буфер в OpenGL
+        glGenBuffers(1, &vertexBuffer);
+        glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer);
+        glBufferData(GL_ARRAY_BUFFER, pVertexBufferSize, pVertexBuffer, GL_STATIC_DRAW);
+
+        // отвязать буфер
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        if (glGetError() != GL_NO_ERROR) goto ERROR;
+        m_vertexBuffers[m_vertexBufferCount++] = vertexBuffer;
+
+        return vertexBuffer;
+
+        ERROR:
+        Log::error("Error loading vertex buffer");
+        if (vertexBuffer > 0) glDeleteBuffers(1, &vertexBuffer);
         return 0;
     }
 }
