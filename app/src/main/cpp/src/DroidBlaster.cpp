@@ -20,7 +20,8 @@ namespace DroidBlaster {
                                                             m_eventLoop(pApplication, *this,
                                                                         m_inputManager),
                                                             m_graphicsManager(pApplication),
-                                                            m_ship(pApplication, m_graphicsManager),
+                                                            m_ship(pApplication, m_graphicsManager,
+                                                                   m_soundManager),
                                                             m_timeManager(),
                                                             m_physicsManager(m_timeManager,
                                                                              m_graphicsManager),
@@ -36,13 +37,15 @@ namespace DroidBlaster {
                                                                           m_graphicsManager),
                                                             m_moveableBody(pApplication,
                                                                            m_inputManager,
-                                                                           m_physicsManager) {
+                                                                           m_physicsManager),
+                                                            m_collisionSound(pApplication, "start.pcm") {
         Log::info("Creating DroidBlaster");
 
         Sprite *shipGraphics = m_spriteBatch.registerSprite(m_shipTexture, SHIP_SIZE, SHIP_SIZE);
         shipGraphics->setAnimation(SHIP_FRAME_1, SHIP_FRAME_COUNT, SHIP_ANIM_SPEED, true);
         m_moveableBody.registerMoveableBody(shipGraphics->location, SHIP_SIZE, SHIP_SIZE);
-        m_ship.registerShip(shipGraphics);
+        Sound *collisionSound = m_soundManager.registerSound(m_collisionSound);
+        m_ship.registerShip(shipGraphics, collisionSound);
 
         // Создать астероиды
         for (int32_t i = 0; i != ASTEROID_COUNT; ++i) {

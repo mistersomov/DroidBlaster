@@ -17,6 +17,7 @@ namespace DroidBlaster {
         void close();
         status read(void* pBuffer, size_t pCount);
         ResourceDescriptor descriptor();
+        off_t getLength();
 
         bool operator==(const Resource& pOther);
 

@@ -7,8 +7,19 @@ namespace DroidBlaster {
                                                             m_outputMixObj(nullptr),
                                                             m_BGMPlayerObj(nullptr),
                                                             m_BGMPlayer(nullptr),
-                                                            m_BGMPlayerSeek(nullptr) {
+                                                            m_BGMPlayerSeek(nullptr),
+                                                            m_soundQueues(), m_currentQueue(0),
+                                                            m_sounds(), m_soundCount(0) {
         Log::info("Creating SoundManager");
+    }
+
+    SoundManager::~SoundManager() {
+        Log::info("Destroying SoundManager");
+
+        for (int32_t i = 0; i != m_soundCount; ++i) {
+            delete m_sounds[i];
+        }
+        m_soundCount = 0;
     }
 
     status SoundManager::start() {
@@ -38,6 +49,14 @@ namespace DroidBlaster {
                                               outputMixIIDs, outputMixReqs);
         result = (*m_outputMixObj)->Realize(m_outputMixObj, SL_BOOLEAN_FALSE);
 
+        Log::info("Starting sound player");
+        for (auto &m_soundQueue: m_soundQueues) {
+            if (m_soundQueue.initialize(m_engine, m_outputMixObj) != STATUS_OK) goto ERROR;
+        }
+        for (int32_t i = 0; i != m_soundCount; ++i) {
+            if (m_sounds[i]->load() != STATUS_OK) goto ERROR;
+        }
+
         return STATUS_OK;
 
         ERROR:
@@ -49,6 +68,14 @@ namespace DroidBlaster {
     void SoundManager::stop() {
         Log::info("Stopping SoundManager");
         stopBGM();
+
+        for (auto & m_soundQueue : m_soundQueues) {
+            m_soundQueue.finalize();
+        }
+
+        for (int32_t i = 0; i != m_soundCount; ++i) {
+            m_sounds[i]->unload();
+        }
 
         if (m_outputMixObj != nullptr) {
             (*m_outputMixObj)->Destroy(m_outputMixObj);
@@ -97,7 +124,8 @@ namespace DroidBlaster {
         const SLInterfaceID bgmPlayerIIDs[] = {SL_IID_PLAY, SL_IID_SEEK};
         const SLboolean bgmPlayerReqs[] = {SL_BOOLEAN_TRUE, SL_BOOLEAN_TRUE};
 
-        result = (*m_engine)->CreateAudioPlayer(m_engine, &m_BGMPlayerObj, &dataSource, &dataSink, bgmPlayerIIDCount,
+        result = (*m_engine)->CreateAudioPlayer(m_engine, &m_BGMPlayerObj, &dataSource, &dataSink,
+                                                bgmPlayerIIDCount,
                                                 bgmPlayerIIDs, bgmPlayerReqs);
         if (result != SL_RESULT_SUCCESS) goto ERROR;
 
@@ -135,5 +163,24 @@ namespace DroidBlaster {
                 m_BGMPlayerSeek = nullptr;
             }
         }
+    }
+
+    Sound *SoundManager::registerSound(Resource &pResource) {
+        for (int32_t i = 0; i != m_soundCount; ++i) {
+            if (std::strcmp(pResource.getPath(), m_sounds[i]->getPath()) == 0) {
+                return m_sounds[i];
+            }
+        }
+
+        auto* sound = new Sound(m_application, &pResource);
+        m_sounds[m_soundCount++] = sound;
+
+        return sound;
+    }
+
+    void SoundManager::playSound(Sound *pSound) {
+        int32_t currentQueue = ++m_currentQueue;
+        SoundQueue& soundQueue = m_soundQueues[currentQueue % QUEUE_COUNT];
+        soundQueue.playSound(pSound);
     }
 }
