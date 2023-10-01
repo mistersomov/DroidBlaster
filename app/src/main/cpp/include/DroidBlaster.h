@@ -53,6 +53,7 @@ namespace DroidBlaster {
         Resource m_asteroidTexture;
         Resource m_shipTexture;
         Resource m_bgm;
+        Resource m_collisionSound;
 
         MoveableBody m_moveableBody;
     };

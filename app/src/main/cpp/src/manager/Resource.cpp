@@ -38,4 +38,8 @@ namespace DroidBlaster {
         }
         return lDescriptor;
     }
+
+    off_t Resource::getLength() {
+        return AAsset_getLength(m_asset);
+    }
 }
