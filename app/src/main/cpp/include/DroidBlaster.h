@@ -9,7 +9,10 @@
 #include "manager/GraphicsManager.h"
 #include "manager/SoundManager.h"
 #include "manager/Resource.h"
+#include "manager/InputManager.hpp"
+#include "MoveableBody.hpp"
 #include "Asteroid.h"
+#include "SpriteBatch.hpp"
 
 namespace DroidBlaster {
     class DroidBlaster : public ActivityHandler {
@@ -41,12 +44,17 @@ namespace DroidBlaster {
         TimeManager m_timeManager;
         PhysicsManager m_physicsManager;
         SoundManager m_soundManager;
+        InputManager m_inputManager;
 
         Asteroid m_asteroids;
         Ship m_ship;
+        SpriteBatch m_spriteBatch;
 
         Resource m_asteroidTexture;
         Resource m_shipTexture;
         Resource m_bgm;
+        Resource m_collisionSound;
+
+        MoveableBody m_moveableBody;
     };
 }

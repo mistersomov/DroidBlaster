@@ -1,4 +1,3 @@
-#include <cstring>
 #include "manager/GraphicsManager.h"
 #include "Log.h"
 
@@ -7,20 +6,24 @@ namespace DroidBlaster {
 
     Manager::Manager(android_app *pApplication) : m_application(pApplication),
                                                   m_renderWidth(0), m_renderHeight(0),
-                                                  m_elements(), m_elementCount(0),
+                                                  //m_elements(),
+                                                  m_elementCount(0),
                                                   m_display(EGL_NO_DISPLAY),
                                                   m_surface(EGL_NO_SURFACE),
                                                   m_context(EGL_NO_CONTEXT),
-                                                  m_textures(), m_textureCount(0) {
+                                                  m_textures(), m_textureCount(0),
+                                                  m_projectionMatrix(),
+                                                  m_shaders(), m_shaderCount(0),
+                                                  m_components(), m_componentCount(0) {
         Log::info("Creating GraphicsManager");
     }
 
     Manager::~Manager() {
         Log::info("Destroying GraphicsManager");
 
-        for (int32_t i = 0; i != m_elementCount; ++i) {
-            delete m_elements[i];
-        }
+//        for (int32_t i = 0; i != m_elementCount; ++i) {
+//            delete m_elements[i];
+//        }
     }
 
     DroidBlaster::status Manager::start() {
@@ -85,6 +88,22 @@ namespace DroidBlaster {
 //            Log::error("Error while locking window");
 //            return STATUS_KO;
 //        }
+
+        // Подготовить матрицу проекции с размерами отображемого окна
+        std::memset(m_projectionMatrix[0], 0, sizeof(m_projectionMatrix));
+        m_projectionMatrix[0][0] = 2.0f / GLfloat(m_renderWidth);
+        m_projectionMatrix[1][1] = 2.0f / GLfloat(m_renderHeight);
+        m_projectionMatrix[2][2] = -1.0f;
+        m_projectionMatrix[3][0] = -1.0f;
+        m_projectionMatrix[3][1] = -1.0f;
+        m_projectionMatrix[3][2] = 0.0f;
+        m_projectionMatrix[3][3] = 1.0f;
+
+        // Загрузить графические компоненты
+        for (int32_t i = 0; i != m_componentCount; ++i) {
+            if (m_components[i]->load() != STATUS_OK) return STATUS_KO;
+        }
+
         return STATUS_OK;
 
         ERROR:
@@ -94,10 +113,14 @@ namespace DroidBlaster {
     }
 
     DroidBlaster::status Manager::update() {
-        static float clearColor = 0.0f;
-        clearColor += 0.001f;
-        glClearColor(clearColor, clearColor, clearColor, 1.0f);
+//        static float clearColor = 0.0f;
+//        clearColor += 0.001f;
+//        glClearColor(clearColor, clearColor, clearColor, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
+
+        for (int32_t i = 0; i < m_componentCount; ++i) {
+            m_components[i]->draw();
+        }
 
         if (eglSwapBuffers(m_display, m_surface) != EGL_TRUE) {
             Log::error("Error %d swapping buffers", eglGetError());
@@ -152,10 +175,10 @@ namespace DroidBlaster {
 //        return STATUS_OK;
     }
 
-    Element *Manager::registerElement(int32_t pHeight, int32_t pWidth) {
-        m_elements[m_elementCount] = new Element(pWidth, pHeight);
-        return m_elements[m_elementCount++];
-    }
+//    Element *Manager::registerElement(int32_t pHeight, int32_t pWidth) {
+//        m_elements[m_elementCount] = new Element(pWidth, pHeight);
+//        return m_elements[m_elementCount++];
+//    }
 
     void Manager::stop() {
         Log::info("Stopping GraphicsManager");
@@ -164,6 +187,11 @@ namespace DroidBlaster {
             glDeleteTextures(1, reinterpret_cast<const GLuint *>(&m_textures[i].texture));
         }
         m_textureCount = 0;
+
+        for (auto shader : m_shaders) {
+            glDeleteProgram(shader);
+        }
+        m_shaderCount = 0;
 
         // Уничтожить контекст OpenGl
         if (m_display != EGL_NO_DISPLAY) {
@@ -345,5 +373,57 @@ namespace DroidBlaster {
         if (pResource->read(pData, pSize) != STATUS_OK) {
             pResource->close();
         }
+    }
+
+    void Manager::registerComponent(Component *pComponent) {
+        m_components[m_componentCount++] = pComponent;
+    }
+
+    GLuint Manager::loadShader(const char *pVertexShader, const char *pFragmentShader) {
+        GLint result;
+        char log[256];
+        GLuint vertexShader, fragmentShader, shaderProgram;
+
+        // Собрать вершинный шейдер
+        vertexShader = glCreateShader(GL_VERTEX_SHADER);
+        glShaderSource(vertexShader, 1, &pVertexShader, nullptr);
+        glCompileShader(vertexShader);
+        glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &result);
+        if (result == GL_FALSE) {
+            glGetShaderInfoLog(vertexShader, sizeof(log), 0, log);
+            Log::error("Vertex shader error: %s", log);
+            goto ERROR;
+        }
+
+        // Собрать фрагментный шейдер
+        fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
+        glShaderSource(fragmentShader, 1, &pFragmentShader, nullptr);
+        glCompileShader(fragmentShader);
+        glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &result);
+        if (result == GL_FALSE) {
+            glGetShaderInfoLog(fragmentShader, sizeof(log), 0, log);
+            Log::error("Fragment shader error: %s", log);
+            goto ERROR;
+        }
+
+        shaderProgram = glCreateProgram();
+        glAttachShader(shaderProgram, vertexShader);
+        glAttachShader(shaderProgram, fragmentShader);
+        glLinkProgram(shaderProgram);
+        glGetProgramiv(shaderProgram, GL_LINK_STATUS, &result);
+        if (result == GL_FALSE) {
+            glGetShaderInfoLog(shaderProgram, sizeof(log), 0, log);
+            Log::error("Shader program error: %s", log);
+            goto ERROR;
+        }
+
+        m_shaders[m_shaderCount++] = shaderProgram;
+        return shaderProgram;
+
+        ERROR:
+        Log::error("Error loading shader");
+        if (vertexShader > 0) glDeleteShader(vertexShader);
+        if (fragmentShader > 0) glDeleteShader(fragmentShader);
+        return 0;
     }
 }

@@ -12,11 +12,17 @@ add_library(native_app_glue STATIC
 add_library(png STATIC IMPORTED)
 
 add_library(${CMAKE_PROJECT_NAME} SHARED
+        src/SoundQueue.cpp
+        src/Sound.cpp
+        src/MoveableBody.cpp
+        src/SpriteBatch.cpp
+        src/Sprite.cpp
         src/Asteroid.cpp
         src/Ship.cpp
         src/DroidBlaster.cpp
         src/EventLoop.cpp
         src/Log.cpp
+        src/manager/InputManager.cpp
         src/manager/SoundManager.cpp
         src/manager/Resource.cpp
         src/manager/PhysicsManager.cpp
