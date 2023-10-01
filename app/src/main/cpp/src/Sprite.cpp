@@ -24,7 +24,7 @@ namespace DroidBlaster {
         m_sheetHeight = textureProperties->height;
         m_frameXCount = m_sheetWidth / m_spriteWidth;
         m_frameYCount = m_sheetHeight / m_spriteHeight;
-        m_frameCount = (m_sheetHeight / m_spriteHeight) * (m_sheetWidth / m_spriteWidth);
+        m_frameCount = m_frameXCount * m_frameYCount;
         return STATUS_OK;
     }
 
