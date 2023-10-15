@@ -7,6 +7,7 @@
 #include "Types.h"
 
 #include <GLES2/gl2.h>
+#include <vector>
 
 namespace DroidBlaster {
     class SpriteBatch : public Graphics::Component {
@@ -23,13 +24,11 @@ namespace DroidBlaster {
         TimeManager &m_timeManager;
         Graphics::Manager &m_graphicsManager;
 
-        Sprite *m_sprites[1024];
-        int32_t m_spriteCount;
-        Sprite::Vertex m_vertices[1024];
-        int32_t m_vertexCount;
-        GLushort m_indexes[1024];
-        int32_t m_indexCount;
+        std::vector<Sprite*> m_sprites;
+        std::vector<Sprite::Vertex> m_vertices;
+        std::vector<GLushort> m_indexes;
         GLuint m_shaderProgram;
+
         GLuint aPosition, aTexture;
         GLuint uProjection, uTexture;
     };

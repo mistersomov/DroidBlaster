@@ -1,11 +1,15 @@
 #pragma once
 
 #include "Types.h"
+#include "Resource.h"
+
 #include <android_native_app_glue.h>
 #include <GLES2/gl2.h>
 #include <EGL/egl.h>
-#include "Resource.h"
 #include <png.h>
+
+#include <vector>
+#include <map>
 
 namespace DroidBlaster {
     namespace Graphics {
@@ -16,7 +20,6 @@ namespace DroidBlaster {
         };
 
         struct TextureProperties {
-            Resource* textureResource;
             GLint texture;
             int32_t width, height;
         };
@@ -66,15 +69,15 @@ namespace DroidBlaster {
             EGLSurface m_surface;
             EGLContext m_context;
             GLfloat m_projectionMatrix[4][4];
-            GLuint m_shaders[32];
 
-            TextureProperties m_textures[32];
+            // Графические ресурсы
+            std::map<Resource*, TextureProperties> m_textures;
+            std::vector<Component*> m_components;
+            std::vector<GLuint> m_shaders;
+            std::vector<GLuint> m_vertexBuffers;
+
             //Element* m_elements[1024];
-            Component *m_components[32];
             //int32_t m_elementCount;
-            int32_t m_textureCount, m_shaderCount, m_componentCount;
-            GLuint m_vertexBuffers[32];
-            int32_t m_vertexBufferCount;
         };
     }
 }

@@ -11,11 +11,11 @@ namespace DroidBlaster {
                                                   m_display(EGL_NO_DISPLAY),
                                                   m_surface(EGL_NO_SURFACE),
                                                   m_context(EGL_NO_CONTEXT),
-                                                  m_textures(), m_textureCount(0),
+                                                  m_textures(),
                                                   m_projectionMatrix(),
-                                                  m_shaders(), m_shaderCount(0),
-                                                  m_components(), m_componentCount(0),
-                                                  m_vertexBuffers(), m_vertexBufferCount(0) {
+                                                  m_shaders(),
+                                                  m_components(),
+                                                  m_vertexBuffers() {
         Log::info("Creating GraphicsManager");
     }
 
@@ -30,8 +30,7 @@ namespace DroidBlaster {
     DroidBlaster::status Manager::start() {
         Log::info("Starting GraphicsManager");
 
-        EGLint format, numConfigs, errorResult;
-        GLenum status;
+        EGLint format, numConfigs;
         EGLConfig config;
 
         // Определить требования к экрану. Здесь используется 16-битный режим
@@ -101,8 +100,8 @@ namespace DroidBlaster {
         m_projectionMatrix[3][3] = 1.0f;
 
         // Загрузить графические компоненты
-        for (int32_t i = 0; i != m_componentCount; ++i) {
-            if (m_components[i]->load() != STATUS_OK) return STATUS_KO;
+        for (auto& component : m_components) {
+            if (component->load() != STATUS_OK) return STATUS_KO;
         }
 
         return STATUS_OK;
@@ -119,8 +118,8 @@ namespace DroidBlaster {
 //        glClearColor(clearColor, clearColor, clearColor, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
 
-        for (int32_t i = 0; i < m_componentCount; ++i) {
-            m_components[i]->draw();
+        for (auto component : m_components) {
+            component->draw();
         }
 
         if (eglSwapBuffers(m_display, m_surface) != EGL_TRUE) {
@@ -183,20 +182,22 @@ namespace DroidBlaster {
 
     void Manager::stop() {
         Log::info("Stopping GraphicsManager");
+        std::map<Resource*, TextureProperties>::iterator textureIt;
+        for (textureIt = m_textures.begin(); textureIt != m_textures.end(); ++textureIt) {
+            glDeleteTextures(1, reinterpret_cast<const GLuint *>(&textureIt->second.texture));
+        }
 
-        for (int32_t i = 0; i != m_textureCount; ++i) {
-            glDeleteTextures(1, reinterpret_cast<const GLuint *>(&m_textures[i].texture));
+        std::vector<GLuint>::iterator shaderIt;
+        for (shaderIt = m_shaders.begin(); shaderIt != m_shaders.end(); ++shaderIt) {
+            glDeleteProgram(*shaderIt);
         }
-        m_textureCount = 0;
+        m_shaders.clear();
 
-        for (auto shader : m_shaders) {
-            glDeleteProgram(shader);
+        std::vector<GLuint>::iterator vertexIt;
+        for (vertexIt = m_vertexBuffers.begin(); vertexIt != m_vertexBuffers.end(); ++vertexIt) {
+            glDeleteBuffers(1, reinterpret_cast<const GLuint *>(&vertexIt));
         }
-        m_shaderCount = 0;
-        for (auto vertex : m_vertexBuffers) {
-            glDeleteBuffers(1, &vertex);
-        }
-        m_vertexBufferCount = 0;
+        m_vertexBuffers.clear();
 
         // Уничтожить контекст OpenGl
         if (m_display != EGL_NO_DISPLAY) {
@@ -215,11 +216,9 @@ namespace DroidBlaster {
     }
 
     TextureProperties *Manager::loadTexture(Resource &pResource) {
-        for (int32_t i = 0; i != m_textureCount; ++i) {
-            if (pResource == *m_textures[i].textureResource) {
-                Log::info("Found %s in cache", pResource.getPath());
-                return &m_textures[i];
-            }
+        auto textureIt = m_textures.find(&pResource);
+        if (textureIt != m_textures.end()) {
+            return &textureIt->second;
         }
 
         Log::info("Loading texture %s", pResource.getPath());
@@ -354,9 +353,8 @@ namespace DroidBlaster {
         Log::info("Texture size: %d x %d", width, height);
 
         // Кешировать загруженную текстуру
-        textureProperties = &m_textures[m_textureCount++];
+        textureProperties = &m_textures[&pResource];
         textureProperties->texture = texture;
-        textureProperties->textureResource = &pResource;
         textureProperties->width = width;
         textureProperties->height = height;
 
@@ -381,7 +379,7 @@ namespace DroidBlaster {
     }
 
     void Manager::registerComponent(Component *pComponent) {
-        m_components[m_componentCount++] = pComponent;
+        m_components.push_back(pComponent);
     }
 
     GLuint Manager::loadShader(const char *pVertexShader, const char *pFragmentShader) {
@@ -422,7 +420,7 @@ namespace DroidBlaster {
             goto ERROR;
         }
 
-        m_shaders[m_shaderCount++] = shaderProgram;
+        m_shaders.push_back(shaderProgram);
         return shaderProgram;
 
         ERROR:
@@ -443,7 +441,7 @@ namespace DroidBlaster {
         // отвязать буфер
         glBindBuffer(GL_ARRAY_BUFFER, 0);
         if (glGetError() != GL_NO_ERROR) goto ERROR;
-        m_vertexBuffers[m_vertexBufferCount++] = vertexBuffer;
+        m_vertexBuffers.push_back(vertexBuffer);
 
         return vertexBuffer;
 

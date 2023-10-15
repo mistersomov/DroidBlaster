@@ -5,9 +5,9 @@ namespace DroidBlaster {
 
     SpriteBatch::SpriteBatch(TimeManager &pTimeManager, Graphics::Manager &pGraphicsManager)
             : m_timeManager(pTimeManager), m_graphicsManager(pGraphicsManager),
-              m_sprites(), m_spriteCount(0),
-              m_vertices(), m_vertexCount(0),
-              m_indexes(), m_indexCount(0),
+              m_sprites(),
+              m_vertices(),
+              m_indexes(),
               m_shaderProgram(0),
               aPosition(-1), aTexture(-1), uProjection(-1), uTexture(-1) {
         m_graphicsManager.registerComponent(this);
@@ -21,20 +21,22 @@ namespace DroidBlaster {
 
     Sprite *
     SpriteBatch::registerSprite(Resource &pTextureResource, int32_t pWidth, int32_t pHeight) {
-        int32_t spriteCount = m_spriteCount;
+        int32_t spriteCount = m_sprites.size();
         int32_t index = spriteCount * 4; // Первая вершина
 
         // Пересчитать содержимое индексного буфера
-        m_indexes[m_indexCount++] = index + 0;
-        m_indexes[m_indexCount++] = index + 1;
-        m_indexes[m_indexCount++] = index + 2;
-        m_indexes[m_indexCount++] = index + 2;
-        m_indexes[m_indexCount++] = index + 1;
-        m_indexes[m_indexCount++] = index + 3;
-
+        m_indexes.push_back(index + 0);
+        m_indexes.push_back(index + 1);
+        m_indexes.push_back(index + 2);
+        m_indexes.push_back(index + 2);
+        m_indexes.push_back(index + 1);
+        m_indexes.push_back(index + 3);
+        for (int i = 0; i != 4; ++i) {
+            m_vertices.push_back(Sprite::Vertex());
+        }
         // Добавить новый спрайт в массив
-        m_sprites[m_spriteCount] = new Sprite(m_graphicsManager, pTextureResource, pWidth, pHeight);
-        return m_sprites[m_spriteCount++];
+        m_sprites.push_back(new Sprite(m_graphicsManager, pTextureResource, pWidth, pHeight));
+        return m_sprites.back();
     }
 
     static const char *VERTEX_SHADER =
@@ -64,8 +66,9 @@ namespace DroidBlaster {
         uTexture = glGetUniformLocation(m_shaderProgram, "u_texture");
 
         // Загрузить спрайты
-        for (int32_t i = 0; i != m_spriteCount; ++i) {
-            if (m_sprites[i]->load(m_graphicsManager) != STATUS_OK) goto ERROR;
+        std::vector<Sprite*>::iterator spriteIt;
+        for (spriteIt = m_sprites.begin(); spriteIt != m_sprites.end(); ++spriteIt) {
+            if ((*spriteIt)->load(m_graphicsManager) != STATUS_OK) goto ERROR;
         }
         return STATUS_OK;
 
@@ -102,7 +105,7 @@ namespace DroidBlaster {
         const int32_t vertexPerSprite = 4;
         const int32_t indexPerSprite = 6;
         float timeStep = m_timeManager.elapsed();
-        int32_t spriteCount = m_spriteCount;
+        int32_t spriteCount = m_sprites.size();
         int32_t currentSprite = 0, firstSprite = 0;
         while (bool canDraw = (currentSprite < spriteCount)) {
             // Выбрать текстуру
